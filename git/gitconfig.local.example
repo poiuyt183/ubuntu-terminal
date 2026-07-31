@@ -1,0 +1,6 @@
+# Machine-local git settings, included from ~/.gitconfig.
+# This file is NOT tracked by the dotfiles repo — put identity and anything
+# machine-specific here.
+[user]
+	name = poiuyt183
+	email = khuyen.dev183@gmail.com

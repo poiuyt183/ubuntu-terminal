@@ -1,0 +1,16 @@
+[legacy/profiles:/:b1dcc9dd-5262-4d8d-a863-c897e6d979b9]
+background-color='#1E1E2E'
+bold-color-same-as-fg=true
+cell-height-scale=1.0
+cursor-background-color='#F5E0DC'
+cursor-colors-set=true
+cursor-foreground-color='#1E1E2E'
+default-size-columns=80
+font='JetBrains Mono 12'
+foreground-color='#CDD6F4'
+highlight-background-color='#585B70'
+highlight-colors-set=true
+highlight-foreground-color='#CDD6F4'
+palette=['#45475A', '#F38BA8', '#A6E3A1', '#F9E2AF', '#89B4FA', '#F5C2E7', '#94E2D5', '#BAC2DE', '#585B70', '#F38BA8', '#A6E3A1', '#F9E2AF', '#89B4FA', '#F5C2E7', '#94E2D5', '#A6ADC8']
+use-system-font=false
+use-theme-colors=false

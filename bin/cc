@@ -1,0 +1,22 @@
+#!/bin/sh
+# C compiler shim backed by `zig cc` (no system gcc/clang on this machine).
+#
+# The tree-sitter CLI passes `--target x86_64-unknown-linux-gnu`. Zig only
+# accepts its own triple form (`x86_64-linux-gnu`) and errors with
+# "UnknownOperatingSystem" on the vendor field, so drop the flag entirely --
+# we only ever compile for the host anyway.
+args=""
+skip_next=0
+for a in "$@"; do
+	if [ "$skip_next" = 1 ]; then
+		skip_next=0
+		continue
+	fi
+	case "$a" in
+		--target=*) continue ;;
+		-target|--target) skip_next=1; continue ;;
+	esac
+	args="$args $(printf '%s' "$a" | sed "s/'/'\\\\''/g;s/^/'/;s/\$/'/")"
+done
+
+eval "exec \"$HOME/.local/zig/zig\" cc $args"

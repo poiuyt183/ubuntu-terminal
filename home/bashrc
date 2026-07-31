@@ -1,0 +1,122 @@
+# ~/.bashrc: executed by bash(1) for non-login shells.
+# Managed by ~/dotfiles — edit there, not here (this file is a symlink).
+
+# If not running interactively, don't do anything
+case $- in
+    *i*) ;;
+      *) return;;
+esac
+
+# ── ble.sh ──────────────────────────────────────────────────────────────────
+# fish-style inline autosuggestions. Must load FIRST (with --noattach);
+# `ble-attach` runs at the very end of this file.
+[[ $- == *i* ]] && [ -f ~/.local/share/blesh/ble.sh ] && \
+  source ~/.local/share/blesh/ble.sh --noattach
+
+# ── History ─────────────────────────────────────────────────────────────────
+HISTCONTROL=ignoreboth:erasedups
+shopt -s histappend
+# Big history = better autosuggestions. Timestamps so `history` shows when.
+HISTSIZE=100000
+HISTFILESIZE=200000
+HISTTIMEFORMAT='%F %T  '
+
+shopt -s checkwinsize
+
+# make less more friendly for non-text input files, see lesspipe(1)
+[ -x /usr/bin/lesspipe ] && eval "$(SHELL=/bin/sh lesspipe)"
+
+# set variable identifying the chroot you work in (used in the prompt below)
+if [ -z "${debian_chroot:-}" ] && [ -r /etc/debian_chroot ]; then
+    debian_chroot=$(cat /etc/debian_chroot)
+fi
+
+# Fallback prompt — starship replaces this further down when installed.
+PS1='${debian_chroot:+($debian_chroot)}\[\033[01;32m\]\u@\h\[\033[00m\]:\[\033[01;34m\]\w\[\033[00m\]\$ '
+case "$TERM" in
+xterm*|rxvt*)
+    PS1="\[\e]0;${debian_chroot:+($debian_chroot)}\u@\h: \w\a\]$PS1"
+    ;;
+esac
+
+# ── PATH ────────────────────────────────────────────────────────────────────
+export PATH="$HOME/.local/bin:$HOME/.local/go/bin:$HOME/go/bin:$PATH"
+export GOPATH="$HOME/go"
+
+# ── Completion ──────────────────────────────────────────────────────────────
+if ! shopt -oq posix; then
+  if [ -f /usr/share/bash-completion/bash_completion ]; then
+    . /usr/share/bash-completion/bash_completion
+  elif [ -f /etc/bash_completion ]; then
+    . /etc/bash_completion
+  fi
+fi
+
+# ── Node (nvm) ──────────────────────────────────────────────────────────────
+export NVM_DIR="$HOME/.nvm"
+[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+[ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"
+
+# ── Prompt & navigation ─────────────────────────────────────────────────────
+# starship: two-line Catppuccin prompt (~/.config/starship.toml)
+command -v starship >/dev/null 2>&1 && eval "$(starship init bash)"
+
+# zoxide: smart cd. `z <partial-dir>` to jump, `zi` for an interactive pick.
+command -v zoxide >/dev/null 2>&1 && eval "$(zoxide init bash)"
+
+# fzf: fuzzy finder. Ctrl-R = history search, Ctrl-T = file picker, Alt-C = cd.
+[ -f ~/.fzf/shell/key-bindings.bash ] && source ~/.fzf/shell/key-bindings.bash
+[ -f ~/.fzf/shell/completion.bash ]   && source ~/.fzf/shell/completion.bash
+
+# ── Aliases ─────────────────────────────────────────────────────────────────
+if [ -x /usr/bin/dircolors ]; then
+    test -r ~/.dircolors && eval "$(dircolors -b ~/.dircolors)" || eval "$(dircolors -b)"
+    alias grep='grep --color=auto'
+    alias fgrep='fgrep --color=auto'
+    alias egrep='egrep --color=auto'
+fi
+
+# eza: modern ls (icons, colors, git-aware). Plain `ls` when it's missing.
+if command -v eza >/dev/null 2>&1; then
+  # ls = one entry per row, table style: perms, size, owner, mtime, git status
+  alias ls='eza -lh --group-directories-first --git --icons --time-style=long-iso'
+  alias ll='eza -lah --group-directories-first --git --icons --time-style=long-iso'
+  alias la='eza -a --group-directories-first'
+  alias lg='eza --grid --group-directories-first'   # old grid view, when you want it
+  alias lt='eza --tree --level=2'
+else
+  alias ls='ls --color=auto'
+  alias ll='ls -alFh'
+  alias la='ls -A'
+  alias l='ls -CF'
+fi
+
+# bat: cat with syntax highlighting (Ubuntu's apt build is named batcat)
+if command -v bat >/dev/null 2>&1; then
+  alias cat='bat --paging=never'
+elif command -v batcat >/dev/null 2>&1; then
+  alias cat='batcat --paging=never'
+fi
+
+# fd: friendly find (no alias needed, just use `fd`)
+# delta: nicer git diffs (configured via ~/.gitconfig)
+
+alias gs='git status'
+alias gd='git diff'
+alias gl='git log --oneline --graph --decorate -20'
+
+# Add an "alert" alias for long running commands.  Use like so:
+#   sleep 10; alert
+alias alert='notify-send --urgency=low -i "$([ $? = 0 ] && echo terminal || echo error)" "$(history|tail -n1|sed -e '\''s/^\s*[0-9]\+\s*//;s/[;&|]\s*alert$//'\'')"'
+
+# Machine-local extras that shouldn't live in the dotfiles repo.
+[ -f ~/.bash_aliases ] && . ~/.bash_aliases
+[ -f ~/.bashrc.local ] && . ~/.bashrc.local
+
+# ── ssh-agent ───────────────────────────────────────────────────────────────
+# Desktop sessions usually export SSH_AUTH_SOCK already; start one only if not.
+[ -z "$SSH_AUTH_SOCK" ] && eval "$(ssh-agent -s)" > /dev/null
+[ -f ~/.ssh/id_ed25519 ] && ssh-add -q ~/.ssh/id_ed25519 2>/dev/null
+
+# ble.sh must attach LAST, after prompt/keybinding setup above.
+[[ ${BLE_VERSION-} ]] && ble-attach

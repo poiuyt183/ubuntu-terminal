@@ -1,0 +1,44 @@
+# ble.sh config — fish-style autosuggestions in bash.
+# Docs: https://github.com/akinomyoga/ble.sh/wiki
+
+# --- Autosuggestion source ---------------------------------------------------
+# Suggest from shell history first, then from the current syntactic context
+# (filenames, command names, options).
+bleopt complete_auto_complete=1
+bleopt complete_auto_history=1
+bleopt complete_auto_delay=1
+
+# Don't pop up the menu on its own; only the inline grey ghost text.
+bleopt complete_menu_complete=
+
+# --- Appearance --------------------------------------------------------------
+# The greyed-out suggestion trailing your cursor.
+ble-face auto_complete='fg=240'
+
+# Syntax highlighting as you type: valid commands green, unknown ones red,
+# so you catch a typo before pressing Enter.
+ble-face syntax_command='fg=green'
+ble-face syntax_error='fg=red,underline'
+ble-face syntax_quoted='fg=cyan'
+ble-face syntax_varname='fg=yellow'
+ble-face region_match='fg=black,bg=yellow'
+
+# --- Keybindings -------------------------------------------------------------
+# Right-arrow / End accept the whole suggestion (ble.sh default).
+# Alt-Right accepts one word at a time (ble.sh default) -- mirror it onto Ctrl-F,
+# which is easier to reach. The `@end` prefix moves the cursor to end of line
+# first, which is what makes the partial accept work.
+#
+# The auto_complete widgets only exist once the `complete` module is loaded
+# (it is lazy-loaded), so this must be deferred or ble-bind reports
+# "Unknown widget".
+blehook/eval-after-load complete '
+  ble-bind -f "C-f" "auto_complete/@end insert-word"
+'
+
+# Up/Down search history by what you have already typed, rather than walking
+# the full list. Typing `git c` + Up cycles only through `git c...` commands.
+ble-bind -m emacs -f 'up'   'history-search-backward'
+ble-bind -m emacs -f 'down' 'history-search-forward'
+
+# Ctrl-R stays fzf's fuzzy history search (bound in .bashrc).
