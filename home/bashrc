@@ -1,5 +1,8 @@
-# ~/.bashrc: executed by bash(1) for non-login shells.
+# ~/.bashrc — shared by the Ubuntu box and the M1 MacBook.
 # Managed by ~/dotfiles — edit there, not here (this file is a symlink).
+#
+# macOS needs Homebrew's bash 5; Apple's system bash is 3.2 and ble.sh won't
+# run on it. `./install.sh shell` handles that.
 
 # If not running interactively, don't do anything
 case $- in
@@ -40,12 +43,23 @@ xterm*|rxvt*)
 esac
 
 # ── PATH ────────────────────────────────────────────────────────────────────
+# Homebrew goes first on macOS: it provides bash 5, the CLI tools and the
+# completion scripts. (Apple Silicon uses /opt/homebrew, Intel /usr/local.)
+if [[ $OSTYPE == darwin* ]]; then
+  for _brew in /opt/homebrew/bin/brew /usr/local/bin/brew; do
+    if [ -x "$_brew" ]; then eval "$("$_brew" shellenv)"; break; fi
+  done
+  unset _brew
+fi
+
 export PATH="$HOME/.local/bin:$HOME/.local/go/bin:$HOME/go/bin:$PATH"
 export GOPATH="$HOME/go"
 
 # ── Completion ──────────────────────────────────────────────────────────────
 if ! shopt -oq posix; then
-  if [ -f /usr/share/bash-completion/bash_completion ]; then
+  if [ -r "${HOMEBREW_PREFIX:-/nonexistent}/etc/profile.d/bash_completion.sh" ]; then
+    . "$HOMEBREW_PREFIX/etc/profile.d/bash_completion.sh"
+  elif [ -f /usr/share/bash-completion/bash_completion ]; then
     . /usr/share/bash-completion/bash_completion
   elif [ -f /etc/bash_completion ]; then
     . /etc/bash_completion
@@ -64,19 +78,21 @@ command -v starship >/dev/null 2>&1 && eval "$(starship init bash)"
 # zoxide: smart cd. `z <partial-dir>` to jump, `zi` for an interactive pick.
 command -v zoxide >/dev/null 2>&1 && eval "$(zoxide init bash)"
 
-# fzf: fuzzy finder. Ctrl-R = history search, Ctrl-T = file picker, Alt-C = cd.
-[ -f ~/.fzf/shell/key-bindings.bash ] && source ~/.fzf/shell/key-bindings.bash
-[ -f ~/.fzf/shell/completion.bash ]   && source ~/.fzf/shell/completion.bash
+# fzf: Ctrl-R = history search, Ctrl-T = file picker, Alt-C = cd.
+# `fzf --bash` works the same whether fzf came from a tarball (Linux) or
+# Homebrew (macOS), unlike sourcing its shell/*.bash files by path.
+command -v fzf >/dev/null 2>&1 && eval "$(fzf --bash)"
 
 # ── Aliases ─────────────────────────────────────────────────────────────────
+# dircolors is GNU-only; on macOS eza handles colour instead.
 if [ -x /usr/bin/dircolors ]; then
     test -r ~/.dircolors && eval "$(dircolors -b ~/.dircolors)" || eval "$(dircolors -b)"
-    alias grep='grep --color=auto'
-    alias fgrep='fgrep --color=auto'
-    alias egrep='egrep --color=auto'
 fi
+alias grep='grep --color=auto'
+alias fgrep='fgrep --color=auto'
+alias egrep='egrep --color=auto'
 
-# eza: modern ls (icons, colors, git-aware). Plain `ls` when it's missing.
+# eza: modern ls (icons, colors, git-aware). Plain ls when it's missing.
 if command -v eza >/dev/null 2>&1; then
   # ls = one entry per row, table style: perms, size, owner, mtime, git status
   alias ls='eza -lh --group-directories-first --git --icons --time-style=long-iso'
@@ -84,6 +100,11 @@ if command -v eza >/dev/null 2>&1; then
   alias la='eza -a --group-directories-first'
   alias lg='eza --grid --group-directories-first'   # old grid view, when you want it
   alias lt='eza --tree --level=2'
+elif [[ $OSTYPE == darwin* ]]; then
+  alias ls='ls -G'          # BSD ls has no --color
+  alias ll='ls -alFhG'
+  alias la='ls -A'
+  alias l='ls -CF'
 else
   alias ls='ls --color=auto'
   alias ll='ls -alFh'
@@ -105,18 +126,38 @@ alias gs='git status'
 alias gd='git diff'
 alias gl='git log --oneline --graph --decorate -20'
 
-# Add an "alert" alias for long running commands.  Use like so:
-#   sleep 10; alert
-alias alert='notify-send --urgency=low -i "$([ $? = 0 ] && echo terminal || echo error)" "$(history|tail -n1|sed -e '\''s/^\s*[0-9]\+\s*//;s/[;&|]\s*alert$//'\'')"'
+# Desktop notification when a long command finishes:  make build; alert
+# A function rather than an alias so the quoting survives both notifiers, and
+# so BSD sed (no \s, no \+) can strip the history number and timestamp.
+alert() {
+  local status=$?
+  local last
+  last=$(history 1 | sed -E \
+    -e 's/^[[:space:]]*[0-9]+[[:space:]]*//' \
+    -e 's/^[0-9]{4}-[0-9]{2}-[0-9]{2}[[:space:]]+[0-9:]+[[:space:]]*//' \
+    -e 's/[;&|][[:space:]]*alert$//')
+  if [[ $OSTYPE == darwin* ]]; then
+    osascript -e "display notification \"${last//\"/\'}\" with title \"Terminal\"" >/dev/null
+  else
+    notify-send --urgency=low \
+      -i "$([ "$status" = 0 ] && echo terminal || echo error)" "$last"
+  fi
+}
 
 # Machine-local extras that shouldn't live in the dotfiles repo.
 [ -f ~/.bash_aliases ] && . ~/.bash_aliases
 [ -f ~/.bashrc.local ] && . ~/.bashrc.local
 
 # ── ssh-agent ───────────────────────────────────────────────────────────────
-# Desktop sessions usually export SSH_AUTH_SOCK already; start one only if not.
-[ -z "$SSH_AUTH_SOCK" ] && eval "$(ssh-agent -s)" > /dev/null
-[ -f ~/.ssh/id_ed25519 ] && ssh-add -q ~/.ssh/id_ed25519 2>/dev/null
+if [[ $OSTYPE == darwin* ]]; then
+  # macOS already runs an agent per login session; --apple-use-keychain means
+  # the passphrase is asked for once, ever.
+  [ -f ~/.ssh/id_ed25519 ] && ssh-add --apple-use-keychain -q ~/.ssh/id_ed25519 2>/dev/null
+else
+  # Desktop sessions usually export SSH_AUTH_SOCK already; start one only if not.
+  [ -z "$SSH_AUTH_SOCK" ] && eval "$(ssh-agent -s)" > /dev/null
+  [ -f ~/.ssh/id_ed25519 ] && ssh-add -q ~/.ssh/id_ed25519 2>/dev/null
+fi
 
 # ble.sh must attach LAST, after prompt/keybinding setup above.
 [[ ${BLE_VERSION-} ]] && ble-attach

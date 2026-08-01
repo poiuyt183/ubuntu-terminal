@@ -4,7 +4,7 @@
 # This overwrites the default profile's colours and font. Skipped automatically
 # when there is no dconf (server / non-GNOME machine).
 set -euo pipefail
-. "$(dirname "${BASH_SOURCE[0]}")/../lib/common.sh"
+. "$(dirname "${BASH_SOURCE[0]}")/../../lib/common.sh"
 
 if ! have dconf; then
   warn "dconf not found — skipping terminal theme (apt install dconf-cli)"

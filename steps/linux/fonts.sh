@@ -6,7 +6,7 @@
 # starship, lualine and neo-tree. The fontconfig rule that wires that fallback
 # up lives in this repo.
 set -euo pipefail
-. "$(dirname "${BASH_SOURCE[0]}")/../lib/common.sh"
+. "$(dirname "${BASH_SOURCE[0]}")/../../lib/common.sh"
 
 FONT_DIR="$HOME/.local/share/fonts"
 

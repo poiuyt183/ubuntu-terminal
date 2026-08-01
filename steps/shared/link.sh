@@ -3,7 +3,7 @@
 # ~/.dotfiles-backup first, so this is safe to run on a machine that has
 # its own dotfiles.
 set -euo pipefail
-. "$(dirname "${BASH_SOURCE[0]}")/../lib/common.sh"
+. "$(dirname "${BASH_SOURCE[0]}")/../../lib/common.sh"
 
 link home/bashrc     "$HOME/.bashrc"
 link home/profile    "$HOME/.profile"
@@ -14,6 +14,12 @@ link home/gitconfig  "$HOME/.gitconfig"
 link config/nvim          "$HOME/.config/nvim"
 link config/starship.toml "$HOME/.config/starship.toml"
 link config/git/ignore    "$HOME/.config/git/ignore"
+
+# macOS terminals start login shells, and a login bash reads ~/.bash_profile in
+# preference to ~/.profile. Point both at the same file so neither wins.
+if [ "$OS" = macos ]; then
+  link home/profile "$HOME/.bash_profile"
+fi
 
 # Git identity is per-machine and deliberately untracked.
 if [ ! -f "$HOME/.gitconfig.local" ]; then

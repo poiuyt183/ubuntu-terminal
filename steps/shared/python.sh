@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # uv, a uv-managed CPython, and the Python CLIs installed as isolated tools.
 set -euo pipefail
-. "$(dirname "${BASH_SOURCE[0]}")/../lib/common.sh"
+. "$(dirname "${BASH_SOURCE[0]}")/../../lib/common.sh"
 
 export PATH="$BIN:$PATH"
 

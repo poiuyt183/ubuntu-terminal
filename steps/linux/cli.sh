@@ -2,7 +2,7 @@
 # Standalone CLI binaries into ~/.local/bin — newer than Ubuntu's packages and
 # independent of apt. Versions are pinned in versions.env.
 set -euo pipefail
-. "$(dirname "${BASH_SOURCE[0]}")/../lib/common.sh"
+. "$(dirname "${BASH_SOURCE[0]}")/../../lib/common.sh"
 
 mkdir -p "$BIN"
 
@@ -34,19 +34,11 @@ installed eza eza "${EZA_VERSION#v}" || install_tar_bin eza \
   "https://github.com/eza-community/eza/releases/download/${EZA_VERSION}/eza_x86_64-unknown-linux-gnu.tar.gz" \
   "./eza"
 
-# fzf: cloned rather than a bare binary because .bashrc sources its shell
-# integration (Ctrl-R history, Ctrl-T files, Alt-C cd) from ~/.fzf/shell/.
-if [ -d "$HOME/.fzf/.git" ]; then
-  info "updating fzf"
-  git -C "$HOME/.fzf" fetch --tags --depth 1 origin "$FZF_VERSION" 2>/dev/null || true
-  git -C "$HOME/.fzf" checkout -q "$FZF_VERSION" 2>/dev/null || true
-else
-  info "installing fzf $FZF_VERSION"
-  git clone --depth 1 --branch "$FZF_VERSION" https://github.com/junegunn/fzf.git "$HOME/.fzf"
-fi
-"$HOME/.fzf/install" --bin >/dev/null
-ln -sf "$HOME/.fzf/bin/fzf" "$BIN/fzf"
-ok "fzf -> $BIN/fzf"
+# fzf: just the binary — .bashrc gets the Ctrl-R / Ctrl-T / Alt-C bindings from
+# `fzf --bash`, so there's no need to clone the repo for its shell/ scripts.
+installed fzf fzf "${FZF_VERSION#v}" || install_tar_bin fzf \
+  "https://github.com/junegunn/fzf/releases/download/${FZF_VERSION}/fzf-${FZF_VERSION#v}-linux_amd64.tar.gz" \
+  "fzf"
 
 # tree-sitter CLI: needed by nvim-treesitter's `main` branch to build parsers.
 if ! installed tree-sitter tree-sitter "${TREE_SITTER_VERSION#v}"; then
@@ -54,7 +46,7 @@ if ! installed tree-sitter tree-sitter "${TREE_SITTER_VERSION#v}"; then
   tmp=$(mktemp -d)
   fetch "https://github.com/tree-sitter/tree-sitter/releases/download/${TREE_SITTER_VERSION}/tree-sitter-linux-x64.gz" "$tmp/ts.gz"
   gunzip -c "$tmp/ts.gz" > "$tmp/tree-sitter"
-  install -Dm755 "$tmp/tree-sitter" "$BIN/tree-sitter"
+  place "$tmp/tree-sitter" "$BIN/tree-sitter"
   rm -rf "$tmp"
   ok "tree-sitter -> $BIN/tree-sitter"
 fi
@@ -81,7 +73,7 @@ if [ -x /usr/bin/cc ] || [ -x /usr/bin/gcc ]; then
   [ -L "$BIN/cc" ] && rm -f "$BIN/cc"
   ok "system C compiler present, skipping zig cc shim"
 else
-  install -Dm755 "$DOTFILES/bin/cc" "$BIN/cc"
+  place "$DOTFILES/bin/cc" "$BIN/cc"
   ok "installed zig cc shim -> $BIN/cc"
 fi
 

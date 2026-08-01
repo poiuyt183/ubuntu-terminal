@@ -2,7 +2,7 @@
 # System packages (needs sudo). Everything here is Ubuntu-provided; the newer
 # standalone builds of rg/fd/bat/eza/... come from step 02 instead.
 set -euo pipefail
-. "$(dirname "${BASH_SOURCE[0]}")/../lib/common.sh"
+. "$(dirname "${BASH_SOURCE[0]}")/../../lib/common.sh"
 
 info "apt update"
 sudo apt-get update -y

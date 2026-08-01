@@ -2,7 +2,7 @@
 # ble.sh — fish-style inline autosuggestions and syntax highlighting in bash.
 # Only nightly tarballs are published; there is no stable release to pin.
 set -euo pipefail
-. "$(dirname "${BASH_SOURCE[0]}")/../lib/common.sh"
+. "$(dirname "${BASH_SOURCE[0]}")/../../lib/common.sh"
 
 if [ -f "$HOME/.local/share/blesh/ble.sh" ] && [ "${FORCE:-0}" != 1 ]; then
   ok "ble.sh already installed (re-run with FORCE=1 to update)"

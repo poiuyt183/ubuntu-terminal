@@ -1,6 +1,16 @@
 -- gopls is configured through Neovim's built-in vim.lsp.config (0.11+), so no
 -- nvim-lspconfig dependency is needed for a single-language setup.
 
+-- blink.cmp ships prebuilt Rust fuzzy-matcher binaries. On the Linux box
+-- auto-detection picks the musl build, which cannot be dlopen'd into a glibc
+-- Neovim ("libc.so: invalid ELF header"), so the gnu triple has to be forced.
+-- macOS has no such ambiguity — leave detection alone there, since forcing a
+-- Linux triple on darwin-arm64 would download an unusable binary.
+local fuzzy = { implementation = "prefer_rust_with_warning" }
+if vim.fn.has("mac") == 0 then
+	fuzzy.prebuilt_binaries = { force_system_triple = "x86_64-unknown-linux-gnu" }
+end
+
 return {
 	{
 		"saghen/blink.cmp",
@@ -25,13 +35,7 @@ return {
 			},
 			sources = { default = { "lsp", "path", "snippets", "buffer" } },
 			signature = { enabled = true },
-			fuzzy = {
-				implementation = "prefer_rust_with_warning",
-				-- Auto-detection picks the musl build on this machine, which
-				-- cannot be dlopen'd into a glibc Neovim ("libc.so: invalid
-				-- ELF header"). Pin the gnu triple explicitly.
-				prebuilt_binaries = { force_system_triple = "x86_64-unknown-linux-gnu" },
-			},
+			fuzzy = fuzzy,
 		},
 	},
 

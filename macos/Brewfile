@@ -1,0 +1,45 @@
+# Homebrew packages for the Mac. Applied with `brew bundle`.
+#
+# The CLI tools here are the same ones the Linux box downloads as pinned
+# tarballs; Homebrew's current versions match those pins closely (ripgrep,
+# fd, bat, delta, eza, zoxide, starship, tree-sitter were all identical at
+# export time). Neovim and Go are NOT here — they're installed from pinned
+# tarballs by the shared steps so both machines run the exact same versions.
+
+# ── Shell ───────────────────────────────────────────────────────────────────
+brew "bash"               # macOS ships bash 3.2; ble.sh needs 4+
+brew "bash-completion@2"
+
+# ── Core ────────────────────────────────────────────────────────────────────
+brew "git"
+brew "gh"
+brew "tmux"
+brew "curl"
+brew "wget"
+brew "xz"                 # for the .tar.xz downloads (ble.sh, fonts)
+brew "jq"
+brew "tree"
+brew "htop"
+
+# ── Modern CLI ──────────────────────────────────────────────────────────────
+brew "ripgrep"            # rg
+brew "fd"
+brew "bat"
+brew "git-delta"          # provides `delta`
+brew "eza"
+brew "zoxide"
+brew "starship"
+brew "fzf"
+brew "tree-sitter"        # nvim-treesitter (main branch) builds parsers with it
+
+# ── Casks ───────────────────────────────────────────────────────────────────
+cask "ghostty"
+cask "font-jetbrains-mono"              # the terminal's text font
+cask "font-jetbrains-mono-nerd-font"    # patched, for icon glyphs
+cask "font-symbols-only-nerd-font"      # symbol fallback
+
+# Deliberately absent:
+#   zig     — only needed on the Linux box, which has no system C compiler.
+#             macOS has clang from the Xcode Command Line Tools.
+#   docker  — install Docker Desktop or `brew install colima docker` by hand;
+#             it's a big, opinionated dependency to force on a laptop.

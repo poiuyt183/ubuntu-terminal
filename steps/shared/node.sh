@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # nvm + the current Node LTS.
 set -euo pipefail
-. "$(dirname "${BASH_SOURCE[0]}")/../lib/common.sh"
+. "$(dirname "${BASH_SOURCE[0]}")/../../lib/common.sh"
 
 export NVM_DIR="$HOME/.nvm"
 

@@ -1,8 +1,36 @@
 # Shared helpers for the install steps. Sourced, never executed directly.
+#
+# Kept compatible with bash 3.2, because on a fresh macOS the very first run
+# happens under Apple's ancient system bash — before Homebrew's bash 5 exists.
+# That rules out associative arrays and ${var,,}.
 
 DOTFILES="${DOTFILES:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}"
 BIN="$HOME/.local/bin"
 BACKUP_DIR="${BACKUP_DIR:-$HOME/.dotfiles-backup}"
+
+# ── Platform ────────────────────────────────────────────────────────────────
+case "$(uname -s)" in
+  Linux)  OS=linux ;;
+  Darwin) OS=macos ;;
+  *)      echo "unsupported OS: $(uname -s)" >&2; exit 1 ;;
+esac
+
+case "$(uname -m)" in
+  x86_64|amd64) ARCH=x86_64 ;;
+  arm64|aarch64) ARCH=arm64 ;;
+  *) echo "unsupported architecture: $(uname -m)" >&2; exit 1 ;;
+esac
+
+# Release-asset naming for the two upstreams we download directly.
+if [ "$OS" = macos ]; then
+  GO_PLATFORM="darwin-$( [ "$ARCH" = arm64 ] && echo arm64 || echo amd64 )"
+  NVIM_ASSET="nvim-macos-${ARCH}"
+  HOMEBREW_PREFIX="${HOMEBREW_PREFIX:-$( [ "$ARCH" = arm64 ] && echo /opt/homebrew || echo /usr/local )}"
+  export HOMEBREW_PREFIX
+else
+  GO_PLATFORM="linux-$( [ "$ARCH" = arm64 ] && echo arm64 || echo amd64 )"
+  NVIM_ASSET="nvim-linux-${ARCH}"
+fi
 
 # shellcheck disable=SC1090
 set -a; . "$DOTFILES/versions.env"; set +a
@@ -36,6 +64,14 @@ installed() {
 
 fetch() { curl -fsSL --retry 3 --proto '=https' --tlsv1.2 "$1" -o "$2"; }
 
+# Copy a file into place with a mode. BSD install has no -D, so create the
+# parent directory separately rather than relying on it.
+place() { # <src> <dst> [mode]
+  mkdir -p "$(dirname "$2")"
+  cp -f "$1" "$2"
+  chmod "${3:-755}" "$2"
+}
+
 # Download a tar archive and copy one binary out of it into ~/.local/bin.
 # usage: install_tar_bin <name> <url> <path-inside-archive>
 install_tar_bin() {
@@ -44,8 +80,26 @@ install_tar_bin() {
   info "installing $name"
   fetch "$url" "$tmp/a.tar.gz" || die "download failed: $url"
   tar -xf "$tmp/a.tar.gz" -C "$tmp" || die "extract failed: $name"
-  install -Dm755 "$tmp/$inner" "$BIN/$name" || die "no $inner in $name archive"
+  [ -f "$tmp/$inner" ] || die "no $inner in $name archive"
+  place "$tmp/$inner" "$BIN/$name"
   ok "$name -> $BIN/$name"
+}
+
+# Download a tarball and replace a whole directory with its single top-level
+# folder. Used for the Neovim and Go toolchains.
+# usage: install_tar_dir <name> <url> <top-level-dir-in-archive> <dest>
+install_tar_dir() {
+  local name=$1 url=$2 inner=$3 dest=$4 tmp
+  tmp=$(mktemp -d)
+  info "installing $name"
+  fetch "$url" "$tmp/a.tar.gz" || { rm -rf "$tmp"; die "download failed: $url"; }
+  tar -xf "$tmp/a.tar.gz" -C "$tmp" || { rm -rf "$tmp"; die "extract failed: $name"; }
+  [ -d "$tmp/$inner" ] || { rm -rf "$tmp"; die "no $inner/ in $name archive"; }
+  mkdir -p "$(dirname "$dest")"
+  rm -rf "$dest"
+  mv "$tmp/$inner" "$dest"
+  rm -rf "$tmp"
+  ok "$name -> $dest"
 }
 
 # Symlink a repo file into place, backing up whatever is already there.
@@ -53,7 +107,9 @@ install_tar_bin() {
 link() {
   local src="$DOTFILES/$1" dst=$2
   [ -e "$src" ] || die "missing in repo: $1"
-  if [ -L "$dst" ] && [ "$(readlink -f "$dst")" = "$(readlink -f "$src")" ]; then
+  # Plain readlink, not readlink -f: BSD readlink lacks -f on older macOS, and
+  # we always create these links with the exact $src path anyway.
+  if [ -L "$dst" ] && [ "$(readlink "$dst")" = "$src" ]; then
     ok "$dst"; return
   fi
   if [ -e "$dst" ] || [ -L "$dst" ]; then

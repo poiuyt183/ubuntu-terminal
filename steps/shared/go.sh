@@ -1,20 +1,18 @@
 #!/usr/bin/env bash
 # Go toolchain into ~/.local/go, Go-based dev tools into ~/go/bin.
 set -euo pipefail
-. "$(dirname "${BASH_SOURCE[0]}")/../lib/common.sh"
+. "$(dirname "${BASH_SOURCE[0]}")/../../lib/common.sh"
 
 export GOPATH="$HOME/go"
 export PATH="$HOME/.local/go/bin:$GOPATH/bin:$PATH"
 
-if [ "$(cat "$HOME/.local/go/VERSION" 2>/dev/null | head -1)" != "go${GO_VERSION}" ]; then
-  info "installing go $GO_VERSION"
-  tmp=$(mktemp -d)
-  fetch "https://go.dev/dl/go${GO_VERSION}.linux-amd64.tar.gz" "$tmp/go.tar.gz"
-  tar -xf "$tmp/go.tar.gz" -C "$tmp"
-  rm -rf "$HOME/.local/go"
-  mv "$tmp/go" "$HOME/.local/go"
-  rm -rf "$tmp"
-  ok "go -> ~/.local/go"
+if [ "$(head -1 "$HOME/.local/go/VERSION" 2>/dev/null)" != "go${GO_VERSION}" ]; then
+  # $GO_PLATFORM is linux-amd64 or darwin-arm64 (set in common.sh). Taking the
+  # tarball on macOS too, rather than `brew install go`, keeps both machines on
+  # the same compiler.
+  install_tar_dir "go $GO_VERSION" \
+    "https://go.dev/dl/go${GO_VERSION}.${GO_PLATFORM}.tar.gz" \
+    "go" "$HOME/.local/go"
 else
   ok "go $GO_VERSION already installed"
 fi
